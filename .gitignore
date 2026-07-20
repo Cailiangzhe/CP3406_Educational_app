@@ -1,0 +1,36 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Secrets and signing credentials
+.env
+.env.*
+*.jks
+*.keystore
+keystore.properties
+*.pem
+*.p12
+*.pfx
+google-services.json
+
+# Android build and release artifacts
+*.apk
+*.aab
+/release/
+*.hprof
+
+# Codex document review artifacts
+.codex-rubric-review/
