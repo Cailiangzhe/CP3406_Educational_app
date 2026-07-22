@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CP3406_Educational_app"
+rootProject.name = "LexiDue"
 include(":app")

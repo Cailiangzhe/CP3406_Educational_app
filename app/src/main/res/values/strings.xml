@@ -1,3 +1,102 @@
 <resources>
-    <string name="app_name">CP3406_Educational_app</string>
+    <string name="app_name">LexiDue</string>
+
+    <!-- Shared accessibility states -->
+    <string name="state_selected">Selected</string>
+    <string name="state_not_selected">Not selected</string>
+
+    <!-- Home -->
+    <string name="home_title">Home</string>
+    <string name="home_subtitle">Build academic vocabulary with calm, untimed retrieval practice.</string>
+    <string name="home_ready_heading">Your next useful practice</string>
+    <plurals name="home_session_summary">
+        <item quantity="one">A %1$d-word session with %2$d word due now.</item>
+        <item quantity="other">A %1$d-word session with %2$d words due now.</item>
+    </plurals>
+    <string name="action_start_practice">Start practice</string>
+    <string name="home_overview_heading">Learning overview</string>
+    <string name="home_due_label">Due now</string>
+    <string name="home_due_supporting">Due dates are recommendations, not penalties.</string>
+    <string name="home_review_label">To review</string>
+    <string name="home_mastered_label">Mastered</string>
+    <string name="home_enrichment_heading">Dictionary enrichment</string>
+    <string name="home_enrichment_description">Optionally refresh saved dictionary details for up to five due words. Practice remains available from local content.</string>
+    <string name="action_enrich_deck">Enrich deck</string>
+    <string name="action_enriching_deck">Enriching deck&#8230;</string>
+    <string name="home_last_refresh">Last successful refresh: %1$s</string>
+    <string name="home_navigation_heading">Explore LexiDue</string>
+    <string name="action_open_statistics">View statistics</string>
+    <string name="action_open_settings">Open settings</string>
+
+    <!-- Practice -->
+    <string name="practice_title">Practice</string>
+    <string name="practice_subtitle">Choose the meaning that best matches the academic word.</string>
+    <string name="practice_progress_description">Question %1$d of %2$d</string>
+    <string name="practice_question_instruction">Which definition best matches this word?</string>
+    <string name="practice_answers_heading">Answer choices</string>
+    <string name="practice_answer_description">Answer %1$d of %2$d: %3$s</string>
+    <string name="practice_correct_label">Correct</string>
+    <string name="practice_incorrect_label">Not quite</string>
+    <string name="action_skip_question">Skip this question</string>
+    <string name="action_exit_practice">Exit practice</string>
+    <string name="practice_skip_exit_note">Skipping or exiting never counts as an incorrect answer.</string>
+
+    <!-- Statistics -->
+    <string name="statistics_title">Statistics</string>
+    <string name="statistics_subtitle">See local learning progress without streaks, rankings, or pressure.</string>
+    <string name="statistics_overview_heading">Progress overview</string>
+    <string name="statistics_total_sessions">Completed sessions</string>
+    <plurals name="statistics_attempts_supporting">
+        <item quantity="one">Based on %1$d graded attempt; skips are excluded.</item>
+        <item quantity="other">Based on %1$d graded attempts; skips are excluded.</item>
+    </plurals>
+    <string name="statistics_mastered_words">Mastered words</string>
+    <string name="statistics_mastered_supporting">Words that have reached review box 5.</string>
+    <string name="statistics_due_words">Words due</string>
+    <string name="statistics_due_supporting">Words whose recommended review time has arrived.</string>
+    <string name="statistics_accuracy_heading">Overall accuracy</string>
+    <string name="statistics_accuracy_value">Overall accuracy: %1$d%%</string>
+    <string name="statistics_review_boxes_heading">Review-box distribution</string>
+    <string name="statistics_no_review_data">Complete a practice session to build your review-box summary.</string>
+    <plurals name="statistics_review_box_value">
+        <item quantity="one">Review box %1$d: %2$d word</item>
+        <item quantity="other">Review box %1$d: %2$d words</item>
+    </plurals>
+    <string name="statistics_words_to_review_heading">Words to review</string>
+    <string name="statistics_no_words_to_review">No words need extra attention yet.</string>
+    <string name="statistics_recent_sessions_heading">Recent sessions</string>
+    <string name="statistics_no_recent_sessions">Completed sessions will appear here.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Choose a comfortable practice experience and control local learning data.</string>
+    <string name="settings_session_length_heading">Session length</string>
+    <string name="settings_session_length_description">Select a small, predictable number of words for each session.</string>
+    <plurals name="settings_word_count">
+        <item quantity="one">%1$d word</item>
+        <item quantity="other">%1$d words</item>
+    </plurals>
+    <string name="settings_selected_choice">%1$s - selected</string>
+    <string name="settings_difficulty_heading">Difficulty</string>
+    <string name="settings_difficulty_description">Difficulty changes distractor similarity. Every mode remains untimed.</string>
+    <string name="settings_difficulty_foundation">Foundation - 3 clearly distinct choices</string>
+    <string name="settings_difficulty_standard">Standard - 4 compatible choices</string>
+    <string name="settings_difficulty_challenge">Challenge - 4 more similar choices</string>
+    <string name="settings_theme_heading">Theme</string>
+    <string name="settings_theme_system">Use device theme</string>
+    <string name="settings_theme_light">Light theme</string>
+    <string name="settings_theme_dark">Dark theme</string>
+    <string name="settings_effects_heading">Comfort and feedback</string>
+    <string name="settings_sound_title">Sound</string>
+    <string name="settings_sound_description">Play optional audio feedback when available.</string>
+    <string name="settings_haptics_title">Haptics</string>
+    <string name="settings_haptics_description">Use brief vibration alongside visible feedback.</string>
+    <string name="settings_reduced_motion_title">Reduced motion</string>
+    <string name="settings_reduced_motion_description">Avoid non-essential movement and animated transitions.</string>
+    <string name="settings_privacy_heading">Privacy and data</string>
+    <string name="settings_privacy_local_title">Local by design</string>
+    <string name="settings_privacy_local_description">Learning history stays on this device and is never uploaded.</string>
+    <string name="settings_api_description">Optional dictionary enrichment requests only the selected word and stores validated content locally.</string>
+    <string name="action_reset_learning_data">Reset learning data</string>
+    <string name="settings_reset_note">A confirmation step will explain exactly what is deleted before reset.</string>
 </resources>

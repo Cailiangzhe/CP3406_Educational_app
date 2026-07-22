@@ -2,13 +2,13 @@
 
 > An offline-first academic vocabulary trainer for first-year university students aged 18-24 who use English as an additional language.
 
-**Status:** Planning / Android scaffold
+**Status:** M1 complete - Foundation and navigation (2026-07-20)
 
 **Course:** JCU CP3406 Assessment 3
 
 **Platform:** Android, Kotlin, Jetpack Compose, Material Design 3
 
-LexiDue is the working product direction for this repository. The project currently contains the default Compose scaffold; the features below are planned and are not yet implemented.
+LexiDue now has its M1 application foundation: the final namespace, Hilt entry points, adaptive type-safe navigation, four reachable Compose screen foundations, accessible shared components, a secure network boundary, backup exclusions, automated checks, and CI. The learning engine, Room data model, API enrichment, persistent settings, and live statistics remain planned for M2 and later milestones.
 
 ## Product vision
 
@@ -95,7 +95,7 @@ Typed recall, cloze questions, and pronunciation audio are stretch goals. They w
 
 - Accounts, profiles, a custom backend, or cloud progress sync.
 - Advertising, analytics, leaderboards, social sharing, or competitive ranking.
-- Generative AI content, chat, user-generated public content, or unreviewed feeds.
+- Chat, user-generated public content, or unreviewed feeds.
 - Speech recognition, microphone use, OCR, camera/location/storage access, or media upload.
 - Push notifications, coercive streaks, countdown pressure, loot-box rewards, or guilt-based copy.
 - Premature multi-module architecture; one app module with clear feature packages is sufficient.
@@ -204,11 +204,11 @@ DataStore will contain only preferences such as session length, difficulty, them
 ### Privacy and data minimisation
 
 - No account, real name, email, advertising ID, analytics, location, contacts, or device identifier.
-- The only planned effective permission is `android.permission.INTERNET`; it has no runtime prompt. The merged release manifest is audited so transitive libraries cannot silently add permissions.
+- The only Android platform permission requested by the app is `android.permission.INTERNET`; it has no runtime prompt. AndroidX also generates and uses the app-scoped `com.cailiangzhe.lexidue.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, a `signature`-level custom permission that protects non-exported dynamic receivers. It is not a platform data-access permission and cannot be granted to an app signed with another key.
 - API traffic uses HTTPS with cleartext traffic disabled. Any future permission requires a dated justification, just-in-time explanation, safe denial path, and README update.
 - Learning history stays on the device and is never uploaded.
 - A clear reset action deletes attempts, sessions, and review progress after confirmation.
-- Before any progress data is introduced, set `android:allowBackup="false"`, add explicit legacy full-backup exclusions and Android 12+ `cloud-backup`/`device-transfer` exclusions, and verify the merged release manifest. History remains until Reset or uninstall and cannot be restored through cloud backup or device transfer.
+- The M1 privacy baseline sets `android:allowBackup=false`, references a legacy `full-backup-content` rule and Android 12+ `data-extraction-rules`, and excludes every supported storage domain from both cloud backup and device transfer. The release merged manifest was verified before progress data is introduced. Future M2+ storage must remain covered by these rules; history will remain until Reset or uninstall and will not be restored through Android backup or device transfer.
 - Keys, tokens, local configuration, and generated files remain excluded from Git.
 
 ### Safe and age-appropriate learning design
@@ -250,7 +250,7 @@ DataStore will contain only preferences such as session length, difficulty, them
 | Navigation tests | Home to Practice to Summary to Statistics, back behaviour, session argument restoration | Type-safe destination assertions |
 | Manual accessibility/responsive pass | TalkBack order and announcements, focus restoration, keyboard/D-pad/Switch Access focus, 200% font, measurable contrast, colour-independent feedback, reduced motion, phone/tablet, portrait/landscape | Final checklist and screenshot matrix |
 
-Planned quality commands:
+Quality commands (the first command is also the CI verification gate):
 
 ```bash
 ./gradlew spotlessCheck testDebugUnitTest lintDebug
@@ -282,11 +282,12 @@ Windows PowerShell:
 - [x] **M0 - Repository baseline and plan**
   - Android Studio Compose scaffold, GitHub repository, rubric-aligned README, and passing baseline unit task.
 
-- [ ] **M1 - Foundation and navigation**
+- [x] **M1 - Foundation and navigation**
   - Rename namespace/application ID and source/test packages to `com.cailiangzhe.lexidue`.
   - Add version-catalog entries for Kotlin serialization, KSP, Hilt, Navigation Compose, lifecycle Compose, Room, DataStore, Retrofit/serialization/OkHttp, coroutine testing, Room testing, Compose testing, MockWebServer, and Spotless/ktlint.
-  - Define theme tokens, Hilt setup, feature contracts, serializable routes, adaptive top-level navigation, four placeholder screens, the backup/network-security baseline, and `.github/workflows/android-ci.yml`.
-  - Gate: every required screen is reachable; back navigation and a basic navigation test pass; basic semantics/48 dp/dynamic-text checks are present; CI runs `spotlessCheck`, `testDebugUnitTest`, and `lintDebug`; the merged release manifest shows only `INTERNET`, cleartext is disabled, and progress is excluded from cloud backup/device transfer.
+  - Define theme tokens, Hilt setup, feature contracts, serializable routes, adaptive top-level navigation, four screen foundations, the backup/network-security baseline, and `.github/workflows/android-ci.yml`.
+  - Gate passed on 2026-07-20: Home, Practice, Statistics, and Settings are reachable; system Back returns from Practice to Home; instrumentation verifies heading semantics, a minimum 48 dp action target, and Home at 200% font scale.
+  - Verification passed: CI is configured to run `spotlessCheck`, `testDebugUnitTest`, and `lintDebug`; four connected instrumentation tests passed; the release merged manifest has `android:usesCleartextTraffic=false` and `android:allowBackup=false`, and references both backup-rule files. The only requested Android platform permission is `INTERNET`; the additional AndroidX permission is the app-scoped signature permission explained in the privacy section.
 
 - [ ] **M2 - Local learning vertical slice**
   - Canonical starter-deck importer, core Room word/session tables, repository contracts, seedable question generator, distractors, scoring, delayed retry, review scheduling, Practice UI, summary state, and model/ViewModel tests.
@@ -356,15 +357,18 @@ The assessment build is complete when:
 
 The repository currently uses:
 
-- Android Gradle Plugin 9.2.1;
-- Kotlin 2.2.10;
-- Jetpack Compose with the Compose BOM;
+- Android Gradle Plugin 9.2.1 with its built-in Kotlin integration;
+- Kotlin Compose/serialization plugins 2.2.10, KSP 2.3.9, and Hilt 2.59.2;
+- Java 17 source/bytecode compatibility and Kotlin JVM target 17;
+- Jetpack Compose with the Compose BOM and Material 3 adaptive navigation suite;
+- Navigation Compose 2.9.8 with serializable type-safe routes;
 - `minSdk` 24, `targetSdk` 36, and compile SDK 36.1;
 - Gradle daemon/toolchain JDK 21 (Android Studio's bundled JBR is suitable);
-- Java 11 application source and bytecode compatibility; and
-- JUnit and Android/Compose test scaffolding.
+- Hilt application/activity entry points and an injectable Retrofit/OkHttp/serialization `NetworkModule` foundation;
+- Home, Practice, Statistics, and Settings screen contracts and accessible Compose foundations; and
+- Spotless/ktlint, JUnit, Compose UI, navigation, and Android instrumentation test support.
 
-The current production screen is still the generated `Hello Android` placeholder. Navigation, ViewModels, Hilt, networking, Room, DataStore, and the LexiDue features remain planned.
+M1 deliberately stops at the application foundation. The screen states are currently in-memory examples; ViewModels, Room, DataStore repositories, dictionary calls, session logic, and real statistics are M2+ work.
 
 ## Getting started
 
@@ -372,13 +376,19 @@ The current production screen is still the generated `Hello Android` placeholder
 2. Open it in Android Studio.
 3. Select Android Studio's bundled JBR 21 as the Gradle JDK, then allow Gradle to sync and install the required Android SDK components.
 4. Run the `app` configuration on an emulator or Android device.
-5. Run the current baseline unit task:
+5. Run the same formatting, JVM-test, and lint gate used by CI:
 
 ```bash
-./gradlew test
+./gradlew --no-daemon spotlessCheck testDebugUnitTest lintDebug
 ```
 
-Windows PowerShell uses `.\gradlew.bat test`. If a standalone terminal cannot find Java, set `JAVA_HOME` to the Android Studio `jbr` directory for that terminal session. Instrumented tasks additionally require a running emulator or connected device.
+6. With an emulator running or a device connected, run the navigation, identity, and accessibility instrumentation tests:
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
+Windows PowerShell uses `.\gradlew.bat --no-daemon spotlessCheck testDebugUnitTest lintDebug` and `.\gradlew.bat connectedDebugAndroidTest`. If a standalone terminal cannot find Java, set `JAVA_HOME` to the Android Studio `jbr` directory for that terminal session. The connected test task requires a running emulator or connected device and is intentionally separate from the current host-only GitHub Actions job.
 
 `local.properties`, signing credentials, environment files, document-review artifacts, and generated build outputs are intentionally excluded from version control.
 
