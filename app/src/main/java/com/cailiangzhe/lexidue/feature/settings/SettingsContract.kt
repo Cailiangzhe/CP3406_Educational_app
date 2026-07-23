@@ -1,10 +1,6 @@
 package com.cailiangzhe.lexidue.feature.settings
 
-enum class PracticeDifficulty {
-    FOUNDATION,
-    STANDARD,
-    CHALLENGE,
-}
+import com.cailiangzhe.lexidue.domain.model.PracticeDifficulty
 
 enum class ThemeMode {
     SYSTEM,

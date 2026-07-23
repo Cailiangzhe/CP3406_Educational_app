@@ -50,9 +50,9 @@ fun NavHostController.navigateToTopLevel(destination: LexiDueTopLevelDestination
 
     navigate(route) {
         popUpTo<HomeRoute> {
-            saveState = true
+            saveState = destination != LexiDueTopLevelDestination.HOME
         }
         launchSingleTop = true
-        restoreState = true
+        restoreState = destination != LexiDueTopLevelDestination.HOME
     }
 }

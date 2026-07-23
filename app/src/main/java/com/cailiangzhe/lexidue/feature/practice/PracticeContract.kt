@@ -5,6 +5,21 @@ data class PracticeChoice(
     val text: String,
 )
 
+enum class PracticePromptMode {
+    WORD_TO_DEFINITION,
+    DEFINITION_TO_WORD,
+}
+
+data class PracticeQuestionUi(
+    val id: String,
+    val questionNumber: Int,
+    val totalQuestions: Int,
+    val prompt: String,
+    val mode: PracticePromptMode,
+    val choices: List<PracticeChoice>,
+    val isRetry: Boolean = false,
+)
+
 enum class PracticeFeedbackKind {
     CORRECT,
     INCORRECT,
@@ -13,30 +28,61 @@ enum class PracticeFeedbackKind {
 data class PracticeFeedback(
     val kind: PracticeFeedbackKind,
     val message: String,
+    val correctChoiceId: String,
 )
 
+sealed interface PracticeContent {
+    data object Loading : PracticeContent
+
+    data class Question(
+        val question: PracticeQuestionUi,
+        val answersEnabled: Boolean = true,
+    ) : PracticeContent
+
+    data class Feedback(
+        val question: PracticeQuestionUi,
+        val selectedChoiceId: String?,
+        val feedback: PracticeFeedback,
+    ) : PracticeContent
+
+    data class Error(
+        val message: String,
+    ) : PracticeContent
+}
+
 data class PracticeUiState(
-    val questionNumber: Int = 1,
-    val totalQuestions: Int = 10,
-    val promptWord: String = "analyse",
-    val choices: List<PracticeChoice> =
-        listOf(
-            PracticeChoice("a", "Examine something carefully and in detail"),
-            PracticeChoice("b", "Combine separate parts into one object"),
-            PracticeChoice("c", "State that something will happen in the future"),
-            PracticeChoice("d", "Make something easier to understand"),
-        ),
-    val selectedChoiceId: String? = null,
-    val feedback: PracticeFeedback? = null,
-    val answersEnabled: Boolean = true,
+    val sessionId: String = "",
+    val content: PracticeContent = PracticeContent.Loading,
+    val showExitConfirmation: Boolean = false,
 )
 
 sealed interface PracticeUiAction {
     data class SelectAnswer(
+        val questionId: String,
         val choiceId: String,
     ) : PracticeUiAction
 
-    data object Skip : PracticeUiAction
+    data class Continue(
+        val questionId: String,
+    ) : PracticeUiAction
 
-    data object Exit : PracticeUiAction
+    data class Skip(
+        val questionId: String,
+    ) : PracticeUiAction
+
+    data object RequestExit : PracticeUiAction
+
+    data object DismissExit : PracticeUiAction
+
+    data object ConfirmExit : PracticeUiAction
+
+    data object RetryLoad : PracticeUiAction
+}
+
+sealed interface PracticeEffect {
+    data class OpenSummary(
+        val sessionId: String,
+    ) : PracticeEffect
+
+    data object ReturnHome : PracticeEffect
 }

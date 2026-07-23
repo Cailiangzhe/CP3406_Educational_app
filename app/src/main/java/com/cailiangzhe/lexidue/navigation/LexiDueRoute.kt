@@ -17,3 +17,9 @@ data object SettingsRoute
 data class PracticeRoute(
     val sessionId: String,
 )
+
+/** A completed or restored session summary, backed by the same Room session identifier. */
+@Serializable
+data class PracticeSummaryRoute(
+    val sessionId: String,
+)

@@ -1,22 +1,21 @@
 package com.cailiangzhe.lexidue.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.toRoute
-import com.cailiangzhe.lexidue.feature.home.HomeScreen
-import com.cailiangzhe.lexidue.feature.practice.PracticeScreen
+import com.cailiangzhe.lexidue.feature.home.HomeRouteScreen
+import com.cailiangzhe.lexidue.feature.practice.PracticeRouteScreen
+import com.cailiangzhe.lexidue.feature.practice.PracticeSummaryRouteScreen
 import com.cailiangzhe.lexidue.feature.settings.SettingsScreen
 import com.cailiangzhe.lexidue.feature.statistics.StatisticsScreen
-import java.util.UUID
 
 object LexiDueTestTags {
     const val HOME_SCREEN = "home_screen"
     const val PRACTICE_SCREEN = "practice_screen"
+    const val PRACTICE_SUMMARY_SCREEN = "practice_summary_screen"
     const val STATISTICS_SCREEN = "statistics_screen"
     const val SETTINGS_SCREEN = "settings_screen"
     const val HOME_NAVIGATION = "home_navigation"
@@ -35,9 +34,9 @@ fun LexiDueNavHost(
         modifier = modifier,
     ) {
         composable<HomeRoute> {
-            HomeScreen(
-                onStartPractice = {
-                    navController.navigate(PracticeRoute(sessionId = UUID.randomUUID().toString()))
+            HomeRouteScreen(
+                onOpenPractice = { sessionId ->
+                    navController.navigate(PracticeRoute(sessionId = sessionId))
                 },
                 onOpenStatistics = {
                     navController.navigateToTopLevel(LexiDueTopLevelDestination.STATISTICS)
@@ -48,14 +47,29 @@ fun LexiDueNavHost(
                 modifier = Modifier.testTag(LexiDueTestTags.HOME_SCREEN),
             )
         }
-        composable<PracticeRoute> { backStackEntry ->
-            val route = backStackEntry.toRoute<PracticeRoute>()
-            key(route.sessionId) {
-                PracticeScreen(
-                    onExit = navController::navigateUp,
-                    modifier = Modifier.testTag(LexiDueTestTags.PRACTICE_SCREEN),
-                )
-            }
+        composable<PracticeRoute> {
+            PracticeRouteScreen(
+                onOpenSummary = { sessionId ->
+                    navController.navigate(PracticeSummaryRoute(sessionId)) {
+                        popUpTo<PracticeRoute> { inclusive = true }
+                    }
+                },
+                onReturnHome = {
+                    navController.navigateToTopLevel(LexiDueTopLevelDestination.HOME)
+                },
+                modifier = Modifier.testTag(LexiDueTestTags.PRACTICE_SCREEN),
+            )
+        }
+        composable<PracticeSummaryRoute> {
+            PracticeSummaryRouteScreen(
+                onDone = {
+                    navController.navigateToTopLevel(LexiDueTopLevelDestination.HOME)
+                },
+                onOpenStatistics = {
+                    navController.navigateToTopLevel(LexiDueTopLevelDestination.STATISTICS)
+                },
+                modifier = Modifier.testTag(LexiDueTestTags.PRACTICE_SUMMARY_SCREEN),
+            )
         }
         composable<StatisticsRoute> {
             StatisticsScreen(

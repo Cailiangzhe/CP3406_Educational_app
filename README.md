@@ -2,13 +2,26 @@
 
 > An offline-first academic vocabulary trainer for first-year university students aged 18-24 who use English as an additional language.
 
-**Status:** M1 complete - Foundation and navigation (2026-07-20)
+**Status:** M2 complete - Local learning vertical slice (2026-07-22)
 
 **Course:** JCU CP3406 Assessment 3
 
 **Platform:** Android, Kotlin, Jetpack Compose, Material Design 3
 
-LexiDue now has its M1 application foundation: the final namespace, Hilt entry points, adaptive type-safe navigation, four reachable Compose screen foundations, accessible shared components, a secure network boundary, backup exclusions, automated checks, and CI. The learning engine, Room data model, API enrichment, persistent settings, and live statistics remain planned for M2 and later milestones.
+LexiDue now has a runnable, offline local learning loop on top of the M1 application foundation. Home imports and observes a Room-backed starter deck, starts a saved deterministic session, and opens the real Practice flow. Answers, skips, delayed retries, review progress, the current question, completion, abandonment, and the session summary are reconstructed from Room rather than held only in UI memory.
+
+Online dictionary enrichment and DataStore settings remain M3 work. The Statistics and Settings screen foundations are still reachable, but their live repository/preference wiring and reset controls remain M4 work; the disabled Home enrichment action makes that boundary visible instead of presenting a non-functional control.
+
+## M2 implementation evidence
+
+- An atomic, idempotent importer seeds 24 original academic-word entries: eight verbs, eight nouns, and eight adjectives, each with one reviewed canonical meaning.
+- Room schema v1 stores words, canonical meanings, review progress, practice sessions, ordered questions, and one unique attempt per question; the schema is exported under `app/schemas`.
+- Session creation selects due words first, fills without duplicate words, stores a stable random seed, alternates both question modes, and persists prompts, option IDs, answer IDs, order, and the current-question pointer before navigation.
+- Same-part-of-speech distractors are unique and seedable. Foundation generates three choices; Standard and Challenge generate four. Unsafe questions are rejected when compatible distractors are insufficient.
+- Correct and incorrect answers update the attempt, review state, and session count in one Room transaction. A unique question index and compare-and-set advancement make repeated answer/Continue events harmless. Skip is saved but unscored; Exit marks an active session abandoned without recording an incorrect answer.
+- Review intervals advance through 1, 3, 7, 14, and 30 days. An incorrect answer resets the card to the first interval and is retried only when at least two later questions can remain between the original and retry; retries do not recursively create more retries.
+- Home, Practice, and Practice Summary use Hilt ViewModels with immutable state. Practice restores either an unanswered question or persisted feedback after recreation, and the summary derives accuracy, skip/retry counts, review words, and completion time from saved data.
+- Verification on 2026-07-22 passed 41 deterministic JVM tests and 10 Android instrumentation tests. The JVM suite includes recoverable storage-failure handling; the device suite includes Room transaction/reconstruction checks, 200% font and 48 dp target checks, polite feedback semantics, Back/abandon behaviour, and a complete saved Home -> Practice -> Summary -> Home session.
 
 ## Product vision
 
@@ -36,7 +49,7 @@ The MVP will help a learner:
 3. The Activity screen presents one cued-retrieval question at a time.
 4. The learner receives immediate text feedback and a short explanation.
 5. An incorrect word is re-queued after at least two different questions, avoiding instant memorisation of the previous answer.
-6. Every answer is saved atomically; the Statistics screen updates from the local database.
+6. Every answer is saved atomically; Room aggregate queries are ready for the live Statistics wiring scheduled for M4.
 7. Correct answers advance the word through review intervals of 1, 3, 7, 14, and 30 days. An incorrect answer returns it to the first interval.
 
 Skip and Exit are never scored as incorrect. Inactivity does not remove mastery or trigger negative feedback, and due dates are recommendations rather than penalties.
@@ -100,43 +113,40 @@ Typed recall, cloze questions, and pronunciation audio are stretch goals. They w
 - Push notifications, coercive streaks, countdown pressure, loot-box rewards, or guilt-based copy.
 - Premature multi-module architecture; one app module with clear feature packages is sufficient.
 
-## Planned architecture
+## Architecture and planned extensions
 
-LexiDue will use a single-activity, layered MVVM architecture with feature-grouped UI and unidirectional data flow. Screen-level ViewModels expose immutable `StateFlow<UiState>` values and accept explicit UI actions. Composables render state and never call an API, DAO, or DataStore directly.
+LexiDue uses a single-activity, layered MVVM architecture with feature-grouped UI and unidirectional data flow. M2 screen-level ViewModels expose immutable `StateFlow<UiState>` values and accept explicit UI actions. Composables render state and never call an API, DAO, or DataStore directly. Solid edges below are implemented local paths; dashed edges are explicit M3 extensions.
 
 ```mermaid
 flowchart TD
     UI["Compose screens"] -- "UiAction" --> VM["Screen ViewModels"]
     VM -- "immutable UiState" --> UI
     VM --> UC["Quiz and review use cases"]
-    UC --> WR["WordRepository"]
-    UC --> PR["ProgressRepository"]
-    VM --> SR["SettingsRepository"]
+    VM --> WR["WordRepository"]
+    VM --> PSR["PracticeSessionRepository"]
+    VM --> STAT["StatisticsRepository: M2 data, M4 UI"]
+    UC --> WR
+    UC --> PSR
     WR --> DB["Room: canonical source of truth"]
-    PR --> DB
-    WR -- "bounded refresh request" --> API["Free Dictionary API"]
-    API -- "validated DTO" --> WR
-    DB -- "Flow" --> WR
-    DB -- "Flow" --> PR
-    SR --> SETTINGS["DataStore preferences"]
+    PSR --> DB
+    STAT --> DB
+    WR -. "M3 bounded refresh" .-> API["Free Dictionary API"]
+    VM -. "M3 settings" .-> SR["SettingsRepository"]
+    SR -. "M3 persistence" .-> SETTINGS["DataStore preferences"]
 ```
 
-### Planned package structure
+### Package structure and planned M3 folders
 
 ```text
 com.cailiangzhe.lexidue
-|-- app/                 # Application, MainActivity, top-level app state
+|-- MainActivity.kt      # Single activity and top-level app state
 |-- navigation/          # Serializable destinations and NavHost
-|-- core/
-|   |-- common/          # TimeProvider, random provider, result/error types
-|   |-- designsystem/    # Theme tokens and reusable accessible components
-|   `-- model/           # Shared domain models
+|-- core/designsystem/   # Theme tokens and reusable accessible components
 |-- data/
-|   |-- local/           # Room entities, DAOs, database, migrations
-|   |-- remote/          # API DTOs, service, response validation, mappers
-|   |-- preferences/     # DataStore settings
+|   |-- local/           # Room entities, DAOs, database and starter deck
 |   `-- repository/      # Offline-first repository implementations
 |-- domain/
+|   |-- model/           # Shared learning and persistence models
 |   |-- repository/      # Repository contracts
 |   `-- usecase/         # Session generation, scoring, review scheduling
 |-- feature/
@@ -145,22 +155,24 @@ com.cailiangzhe.lexidue
 |   |-- statistics/
 |   `-- settings/
 `-- di/                  # Hilt modules
+
+# M3 adds data/remote and data/preferences behind existing boundaries.
 ```
 
-### Planned Android components
+### Android components and milestone status
 
 - **UI:** Jetpack Compose and Material Design 3.
 - **Navigation:** Navigation Compose with serializable, type-safe destinations.
 - **State:** ViewModel, coroutines, `StateFlow`, immutable UI state, and lifecycle-aware collection.
-- **Dependency injection:** Hilt with constructor-injected repositories, DAOs, API service, minSdk-compatible `TimeProvider`, and random provider.
-- **Networking:** Retrofit/OkHttp with Kotlin serialization and explicit DTO-to-domain mapping.
-- **Persistence:** Room as the canonical source of truth and DataStore for simple preferences.
+- **Dependency injection:** Hilt with constructor-injected repositories, DAOs, minSdk-compatible `TimeProvider`, and ID/random providers; API services join this graph in M3.
+- **Networking:** the Retrofit/OkHttp/Kotlin serialization boundary exists, while service DTOs, mapping, validation and calls remain M3 work.
+- **Persistence:** Room is the implemented M2 source of truth; DataStore for simple preferences remains M3 work.
 - **Code quality:** Spotless with ktlint plus Android Lint; both run locally and in CI.
 - **Background work:** not required for the MVP; refresh remains learner-initiated and transparent.
 
 ## API and offline-first data plan
 
-The planned external source is the key-free [Free Dictionary API](https://dictionaryapi.dev/), using:
+The M3 external source is planned to be the key-free [Free Dictionary API](https://dictionaryapi.dev/), using:
 
 ```text
 GET https://api.dictionaryapi.dev/api/v2/entries/en/{word}
@@ -168,34 +180,36 @@ GET https://api.dictionaryapi.dev/api/v2/entries/en/{word}
 
 The API can provide definitions, parts of speech, phonetics, examples, synonyms, antonyms, and optional pronunciation audio. LexiDue will request only curated English words in the MVP. The application payload contains the lookup word only; it never contains answers, scores, identifiers, settings, or progress. As with any internet request, the provider can still receive ordinary connection metadata such as the device IP address and User-Agent. The app will disclose the provider before refresh and will not log request URLs or bodies in release builds.
 
-Room is the canonical source for learning content and progress read by the UI:
+Room is already the canonical source for M2 learning content and progress. The numbered plan distinguishes implemented local behaviour from M3 networking:
 
-1. A small planned starter deck with original plain-language canonical meanings and recorded reference sources is imported into Room on first run.
-2. The UI observes Room immediately and remains usable without a connection.
-3. The Home screen's **Enrich deck** action refreshes at most five due words per tap and never bulk-fetches the full deck. Cached enrichment becomes stale after 30 days but is not refreshed automatically.
-4. Fetched senses, examples, synonyms, and audio metadata are stored separately from canonical quiz meanings. In the MVP they may enrich feedback, but they never silently replace an answer key or enter the distractor pool.
-5. A timeout, 404, malformed payload, or response without any usable definition produces `Refresh failed - saved content shown`. Missing examples, phonetics, or audio simply hide those optional UI elements.
-6. The UI shows the provider, content source, refresh progress/result, and last successful refresh time. Enrichment remains visible from Room after restart with networking unavailable.
+1. **Implemented in M2:** an atomic/idempotent first-run import stores 24 original plain-language canonical meanings: eight verbs, eight nouns, and eight adjectives.
+2. **Implemented in M2:** Home and Practice observe/read Room and a complete session remains usable without a connection.
+3. **Planned for M3:** the Home **Enrich deck** action will refresh at most five due words per tap and never bulk-fetch the full deck. Cached enrichment will become stale after 30 days but will not refresh automatically.
+4. **Planned for M3:** fetched senses, examples, synonyms, and audio metadata will be stored separately from canonical quiz meanings and will never silently replace an answer key or enter the distractor pool.
+5. **Planned for M3:** timeout, 404, malformed payload, or no usable definition will produce `Refresh failed - saved content shown`; missing optional fields will simply remain hidden.
+6. **Planned for M3:** the UI will show the provider, content source, refresh result, and last successful refresh time, with cached enrichment still visible offline after restart.
 
 Before API-derived definitions or audio are cached in a release build, their response-data, caching, attribution, and secondary-host terms must be recorded in `docs/decision-log.md`. If those terms are unsuitable or unclear, the repository interface allows the source to be replaced; server-code licensing alone will not be treated as permission to redistribute returned content.
 
 No tests will depend on the live API. MockWebServer fixtures will verify Retrofit/serialization and HTTP failure mapping; fake repositories/DAOs will keep repository and ViewModel tests deterministic.
 
-### Planned Room model
+### Room model: M2 implemented, M3 enrichment planned
+
+Room schema v1 implements six entities: `WordEntity`, `CanonicalMeaningEntity`, `ReviewProgressEntity`, `PracticeSessionEntity`, `SessionQuestionEntity`, and `AttemptEntity`. `ApiSenseEntity` is intentionally absent until the M3 content-rights, validation and cache decisions are complete.
 
 | Entity | Minimum stored fields | Purpose |
 | --- | --- | --- |
 | `WordEntity` | normalized key such as `en:analyse`, display spelling, deck/source metadata | Stable word identity; the remote API supplies no database ID |
 | `CanonicalMeaningEntity` | local stable ID, word key, part of speech, original definition, reference/provenance | Reviewed local meaning used for question answers and distractors |
-| `ApiSenseEntity` | local stable ID/hash, word key, part of speech, definition, optional example/phonetic/audio URL, source, fetched timestamp | Quarantined cached enrichment, separate from the scored quiz pool |
+| `ApiSenseEntity` *(M3 planned)* | local stable ID/hash, word key, part of speech, definition, optional example/phonetic/audio URL, source, fetched timestamp | Quarantined cached enrichment, separate from the scored quiz pool |
 | `ReviewProgressEntity` | word ID, review box, correct/incorrect counts, next review timestamp | Transparent spaced-review state |
-| `SessionEntity` | local UUID, difficulty, random seed, planned word count, status (`ACTIVE`, `COMPLETED`, `ABANDONED`), correct count, start time, nullable end time | Session lifecycle; delayed retries do not change the planned word count |
+| `PracticeSessionEntity` | local UUID, difficulty, random seed, planned word count, status (`ACTIVE`, `COMPLETED`, `ABANDONED`), correct count, current-question ID, start time, nullable end time | Authoritative session lifecycle and current pointer; delayed retries do not change the planned word count |
 | `SessionQuestionEntity` | local UUID, session ID, sequence, word key, question type, stored option IDs, optional retry-of ID | Reconstructs the exact active session after process death |
 | `AttemptEntity` | local UUID, unique question-instance ID, session ID, outcome (`CORRECT`, `INCORRECT`, `SKIPPED`), retry flag, answer timestamp | Idempotent answer record; uniqueness prevents double-tap/recomposition double counting |
 
-Planned Room evidence includes foreign keys and indices, word/meaning/enrichment relations, a session/questions/attempts relation, transactional answer/progress updates, and `Flow` aggregate queries. Database migrations will be explicit; destructive migration fallback will not be used for the submitted app.
+M2 Room evidence includes the exported v1 schema, foreign keys and indices, word/meaning and session/question/attempt relations, atomic starter/session creation, an answer/progress/session/retry transaction, a unique attempt per question, compare-and-set question advancement, and `Flow` due/statistics queries. There is no migration test yet because v1 is the first schema; M3 schema changes will add explicit migrations, never destructive fallback.
 
-Statistics use objective definitions: **due** means `nextReviewAt <= TimeProvider.now`; **mastered** means review box 5; **words to review** means at least two graded attempts plus accuracy below 60%, or an incorrect most-recent graded attempt. `SKIPPED` outcomes are excluded from accuracy and mastery calculations.
+Implemented learning rules define **due** as `nextReviewAt <= TimeProvider.now`, **mastered** as review box 5, and **words to review** as at least two graded attempts plus accuracy below 60%, or an incorrect most-recent graded attempt. `SKIPPED` outcomes are excluded from accuracy and mastery calculations. M2 includes the pure calculations and aggregate DAO/repository boundary; full Statistics screen binding remains M4.
 
 DataStore will contain only preferences such as session length, difficulty, theme, sound/haptics, reduced motion, and onboarding state. Relational learning progress will not be duplicated in DataStore.
 
@@ -205,10 +219,10 @@ DataStore will contain only preferences such as session length, difficulty, them
 
 - No account, real name, email, advertising ID, analytics, location, contacts, or device identifier.
 - The only Android platform permission requested by the app is `android.permission.INTERNET`; it has no runtime prompt. AndroidX also generates and uses the app-scoped `com.cailiangzhe.lexidue.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, a `signature`-level custom permission that protects non-exported dynamic receivers. It is not a platform data-access permission and cannot be granted to an app signed with another key.
-- API traffic uses HTTPS with cleartext traffic disabled. Any future permission requires a dated justification, just-in-time explanation, safe denial path, and README update.
+- Future API traffic will use HTTPS with cleartext traffic disabled. Any future permission requires a dated justification, just-in-time explanation, safe denial path, and README update.
 - Learning history stays on the device and is never uploaded.
-- A clear reset action deletes attempts, sessions, and review progress after confirmation.
-- The M1 privacy baseline sets `android:allowBackup=false`, references a legacy `full-backup-content` rule and Android 12+ `data-extraction-rules`, and excludes every supported storage domain from both cloud backup and device transfer. The release merged manifest was verified before progress data is introduced. Future M2+ storage must remain covered by these rules; history will remain until Reset or uninstall and will not be restored through Android backup or device transfer.
+- M4 will add a clear confirmed reset action that deletes attempts, sessions, and review progress.
+- The privacy baseline sets `android:allowBackup=false`, references a legacy `full-backup-content` rule and Android 12+ `data-extraction-rules`, and excludes every supported storage domain from both cloud backup and device transfer. The release merged manifest was verified before M2 progress data was introduced, and the M2 Room database remains covered by those exclusions. History currently remains until uninstall; after M4 it will also be removable through Reset.
 - Keys, tokens, local configuration, and generated files remain excluded from Git.
 
 ### Safe and age-appropriate learning design
@@ -218,7 +232,7 @@ DataStore will contain only preferences such as session length, difficulty, them
 - Fetched content is not automatically trusted: empty, malformed, excessively long, unsuitable, mismatched-part-of-speech, or unapproved-sense fields are rejected or kept out of the quiz pool.
 - Feedback is calm and specific: it explains the answer without shame or exaggerated celebration.
 - Mastery and due-review information replace streak-loss pressure and social comparison.
-- Sessions are untimed by default; learners may pause, skip, retry, change difficulty, or stop.
+- Sessions are untimed; learners may skip or stop without penalty. Persistent session-length and difficulty controls remain planned for M3/M4.
 - Skip/Exit never lowers a score or mastery value, and review reminders are neutral recommendations.
 - Rewards never block content, hide progress, or use variable-reward mechanics.
 
@@ -230,24 +244,24 @@ DataStore will contain only preferences such as session length, difficulty, them
 - Contrast targets of at least 4.5:1 for normal text and 3:1 for large text and essential UI graphics; correctness is communicated with icon, text, and colour together.
 - Text summaries for every progress chart.
 - Polite live-region announcements for answer feedback and network errors, with focus restored after question changes and dialogs.
-- Visible, logical focus for keyboard, D-pad, and Switch Access interaction.
+- Visible, logical focus for keyboard, D-pad, and Switch Access interaction will be included in the M5 manual matrix.
 - Pronunciation audio is optional and always paired with phonetic/text information.
 - Audio never auto-plays; playback occurs only after a learner action and may contact the separate host provided by the API response.
 - Reduced-motion and sound/haptic controls; core learning never depends on animation or audio.
-- Responsive layouts checked on compact and expanded widths, portrait and landscape.
+- Responsive layouts will be checked on compact and expanded widths, portrait and landscape during M5.
 - Plain English instructions and no accent-based scoring.
 
 ## Testing strategy
 
-| Layer | Planned checks | Evidence |
+| Layer | Checks | Current evidence and remaining work |
 | --- | --- | --- |
-| Pure model/use-case tests | scoring, unique distractors, delayed retry, 1/3/7/14/30-day schedule, mastery calculation, empty deck, injected `TimeProvider` and seeded random provider | Fast JVM tests with deterministic inputs |
-| HTTP/mapping tests | Retrofit success, 404, malformed JSON, timeout/IOException mapping, optional-field omission, protocol-relative audio URL normalisation to HTTPS | MockWebServer and versioned response fixtures |
-| Repository tests | cache hit, explicit bounded refresh, 30-day staleness, saved-content fallback, content quarantine, atomic answer update | Fake API/DAO and repository state assertions |
-| ViewModel tests | loading/content/empty/cached/refresh-failure transitions and every important UI action | Coroutine test dispatcher and fake repositories |
-| Room tests | relations, indices, transactions, cascade behaviour, due/review queries, statistics aggregates, migration when schema changes | In-memory database instrumented tests |
-| Compose UI tests | four screen states, answer feedback, settings persistence, reset confirmation, semantics and large targets | Android instrumented tests |
-| Navigation tests | Home to Practice to Summary to Statistics, back behaviour, session argument restoration | Type-safe destination assertions |
+| Pure model/use-case tests | scoring, unique distractors, delayed retry, 1/3/7/14/30-day schedule, mastery calculation, empty deck, injected time and seeded random | Implemented as deterministic JVM tests in M2 |
+| HTTP/mapping tests | Retrofit success, 404, malformed JSON, timeout/IOException mapping, optional-field omission, protocol-relative audio URL normalisation to HTTPS | Planned for M3 with MockWebServer; no M2 test calls the live API |
+| Repository tests | starter import, due selection, atomic answer/progress updates, idempotency and reconstruction; later cache/staleness/fallback rules | M2 local paths use fakes plus in-memory Room; API repository cases remain M3 |
+| ViewModel tests | loading, reconstruction, feedback, retry, completion, summary, errors, double taps and exit actions | Home, Practice, and Summary coroutine tests implemented in M2; API/settings states remain later work |
+| Room tests | relations, indices, transactions, cascade behaviour, due/review queries, aggregates, and future migrations | M2 in-memory tests verify import, idempotency, transactions and saved-session reconstruction; migration tests begin when schema v2 exists |
+| Compose UI tests | answer feedback, semantics, large targets, large font, settings persistence and reset confirmation | M2 verifies Practice/Summary feedback, 48 dp targets and 200% font; settings/reset cases remain M4/M5 |
+| Navigation tests | Home to Practice to Summary, Back/abandon behaviour, top-level screens and session arguments | Implemented with route JVM tests and a complete Room-backed device journey |
 | Manual accessibility/responsive pass | TalkBack order and announcements, focus restoration, keyboard/D-pad/Switch Access focus, 200% font, measurable contrast, colour-independent feedback, reduced motion, phone/tablet, portrait/landscape | Final checklist and screenshot matrix |
 
 Quality commands (the first command is also the CI verification gate):
@@ -289,16 +303,17 @@ Windows PowerShell:
   - Gate passed on 2026-07-20: Home, Practice, Statistics, and Settings are reachable; system Back returns from Practice to Home; instrumentation verifies heading semantics, a minimum 48 dp action target, and Home at 200% font scale.
   - Verification passed: CI is configured to run `spotlessCheck`, `testDebugUnitTest`, and `lintDebug`; four connected instrumentation tests passed; the release merged manifest has `android:usesCleartextTraffic=false` and `android:allowBackup=false`, and references both backup-rule files. The only requested Android platform permission is `INTERNET`; the additional AndroidX permission is the app-scoped signature permission explained in the privacy section.
 
-- [ ] **M2 - Local learning vertical slice**
-  - Canonical starter-deck importer, core Room word/session tables, repository contracts, seedable question generator, distractors, scoring, delayed retry, review scheduling, Practice UI, summary state, and model/ViewModel tests.
-  - Gate: a complete local session records idempotent attempts/progress, reconstructs from Room, and passes model/ViewModel tests with basic accessibility checks.
+- [x] **M2 - Local learning vertical slice**
+  - Added the 24-word canonical starter deck, atomic/idempotent importer, exported Room v1 schema, six core entities, DAOs, transactions, repository contracts and Hilt bindings.
+  - Added due-first deterministic session creation, both question modes, compatible distractors, scoring, delayed retry, the 1/3/7/14/30-day schedule, Home/Practice/Summary ViewModels, and the complete accessible UI/navigation path.
+  - Gate passed on 2026-07-22: Room prevents duplicate attempts and reconstructs the exact current question or feedback; a device test completes a real saved session and summary; 41 JVM and 10 Android instrumentation tests pass.
 
 - [ ] **M3 - API enrichment and offline-first persistence**
-  - Dictionary API service, terms/licence decision, MockWebServer fixtures, validation/mappers, quarantined `ApiSenseEntity` cache, bounded five-word refresh, 30-day staleness, full Room relations/DAOs, session reconstruction, repository states, and DataStore settings.
+  - Dictionary API service, terms/licence decision, MockWebServer fixtures, validation/mappers, quarantined `ApiSenseEntity` cache with an explicit v1-to-v2 migration, bounded five-word refresh, 30-day staleness, enrichment relations/DAOs, repository states, and DataStore settings.
   - Gate: the Home enrichment path visibly performs network -> validation -> Room; saved enrichment remains visible after restart with networking unavailable; refresh failures keep canonical content usable; HTTP/data/repository tests pass.
 
 - [ ] **M4 - Statistics, settings, and privacy controls**
-  - Room aggregate queries, Statistics UI, settings persistence, privacy/API disclosure, and verified local reset.
+  - Wire the existing Room aggregate queries into Statistics UI, complete settings persistence, add privacy/API disclosure, and implement verified local reset.
   - Gate: statistics update immediately and survive restart; reset removes learning history while preserving safe defaults; new UI includes semantics, large targets, and dynamic-text checks.
 
 - [ ] **M5 - UI, accessibility, and resilience polish**
@@ -365,10 +380,13 @@ The repository currently uses:
 - `minSdk` 24, `targetSdk` 36, and compile SDK 36.1;
 - Gradle daemon/toolchain JDK 21 (Android Studio's bundled JBR is suitable);
 - Hilt application/activity entry points and an injectable Retrofit/OkHttp/serialization `NetworkModule` foundation;
-- Home, Practice, Statistics, and Settings screen contracts and accessible Compose foundations; and
+- Room schema v1 with six related entities, exported schema history, transactional DAOs, four repository boundaries, and a 24-word local starter deck;
+- seedable learning use cases for question generation, scoring, delayed retry, summaries, due-first session creation, and 1/3/7/14/30-day review scheduling;
+- Room-backed Home, Practice, and Practice Summary ViewModels plus Statistics and Settings screen foundations;
+- 41 JVM tests and 10 connected Android tests covering the M2 gate; and
 - Spotless/ktlint, JUnit, Compose UI, navigation, and Android instrumentation test support.
 
-M1 deliberately stops at the application foundation. The screen states are currently in-memory examples; ViewModels, Room, DataStore repositories, dictionary calls, session logic, and real statistics are M2+ work.
+M2 is deliberately local-only. Practice is runnable without a network and all learning/session state is saved in Room. Dictionary calls, API cache entities, DataStore preferences, live Statistics UI wiring, settings persistence, and reset controls are not claimed as complete; they remain M3/M4 work.
 
 ## Getting started
 
@@ -382,7 +400,7 @@ M1 deliberately stops at the application foundation. The screen states are curre
 ./gradlew --no-daemon spotlessCheck testDebugUnitTest lintDebug
 ```
 
-6. With an emulator running or a device connected, run the navigation, identity, and accessibility instrumentation tests:
+6. With an emulator running or a device connected, run the Room, complete-session navigation, identity, and accessibility instrumentation tests:
 
 ```bash
 ./gradlew connectedDebugAndroidTest

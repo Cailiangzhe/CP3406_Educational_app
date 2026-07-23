@@ -58,3 +58,60 @@ The four connected tests provide the following evidence:
 4. `LexiDueNavigationTest.practiceSystemBack_returnsToHome` verifies Practice is reachable and system Back returns to Home.
 
 **M1 conclusion.** The foundation/navigation gate is complete. This is not evidence for M2 learning logic, Room persistence, API enrichment, or real statistics; those milestones remain unchecked in the README.
+
+## 2026-07-22 - M2 local learning vertical slice
+
+### Room v1 and the canonical starter deck
+
+**Decision.** Make Room the authoritative source for local learning state and export schema v1 with six entities: `WordEntity`, `CanonicalMeaningEntity`, `ReviewProgressEntity`, `PracticeSessionEntity`, `SessionQuestionEntity`, and `AttemptEntity`. Seed it with 24 original plain-language academic-word meanings split evenly across verbs, nouns, and adjectives.
+
+**Reason.** A bundled, reviewed answer key makes first-run practice independent of network availability and prevents unreviewed API text from silently becoming scored content. The importer is one atomic transaction and uses stable IDs plus insert-ignore behaviour, so repeated application starts do not duplicate words, meanings, or progress rows.
+
+**Boundary.** `ApiSenseEntity`, content-rights validation, an explicit schema migration, and DataStore preferences are intentionally absent from v1 and remain M3 work. The existing backup/data-extraction rules exclude the M2 database, and `android:allowBackup=false` remains unchanged.
+
+### Authoritative persisted session state
+
+**Decision.** Create the complete session before navigation and persist its ID, stable random seed, difficulty, ordered questions, prompts, option IDs, correct option IDs, retry relationship, current-question pointer, status, and timestamps. `SavedStateHandle` carries only `sessionId`; Practice and Summary reconstruct their state through repositories backed by Room.
+
+**Reason.** A UI-only question list would be lost after process death and could regenerate different distractors. Storing the generated order and current pointer lets an unanswered question or already-recorded feedback return exactly as the learner left it.
+
+**Evidence.** The Room test recreates a session snapshot after an idempotent answer write. ViewModel tests separately reconstruct unanswered and graded states, while the connected complete-session test uses the production Hilt/Room path from Home through Summary.
+
+### Idempotent transactional learning writes
+
+**Decision.** Enforce one attempt per question with a unique database index. Record the attempt, review update, session correct count, and optional retry question in one transaction. Advance with a compare-and-set operation against the expected current question; advancing the final question clears the pointer and completes the session once.
+
+**Reason.** Compose recomposition, double taps, repeated effects, or retried events must not double-count an answer or skip a question. Keeping persisted feedback selected until an explicit successful Continue also makes restoration unambiguous.
+
+**Boundary.** Skip is stored as `SKIPPED` but does not change review progress or accuracy. Exit records no attempt; it changes only an active session to `ABANDONED`, preserving prior answers.
+
+### Deterministic questions, review, and delayed retry
+
+**Decision.** Select due words first, fill with unique deck words, use a saved seed, alternate word-to-definition and definition-to-word questions, and generate unique distractors from the same part of speech. Foundation uses three options; Standard and Challenge use four. Correct answers advance through 1, 3, 7, 14, and 30-day intervals; incorrect answers reset to the first interval.
+
+**Reason.** Seeded generation makes failures reproducible and same-part-of-speech distractors avoid trivial grammatical cues. Overflow-safe timestamp arithmetic and an injected time source keep review behaviour deterministic in tests.
+
+**Delayed-retry boundary.** A retry must follow at least two intervening questions and cannot create another retry. The active Practice flow adds one only when at least two unanswered questions remain; an incorrect answer among the final two base questions is still saved and scheduled for spaced review but is not retried in that session.
+
+### M2 UI, navigation, and accessibility boundary
+
+**Decision.** Replace the Home and Practice sample path with Hilt ViewModels and add a Room-derived Practice Summary. Feedback combines text with a non-colour symbol and uses a polite live region; major actions and answer choices have 48 dp minimum targets; Practice and Summary remain vertically scrollable at 200% font scale. Back opens a confirmation and does not score leaving as incorrect.
+
+**Navigation finding.** Device testing exposed that using saved-state restoration when explicitly returning to Home could restore the just-left Practice/Summary destination. Home navigation now discards the focused learning flow, while Statistics/Settings top-level navigation retains state restoration.
+
+**Resilience finding.** A final code audit found that non-validation storage failures could escape Practice coroutines and that Home's unwired review metric would always display zero. Practice now retains a recoverable error state and can restart its Room observation through **Try again**; Home omits the misleading metric until M4 supplies the complete review query/UI binding.
+
+**Boundary.** Automated M2 checks cover headings, 200% font, minimum targets, feedback announcement semantics, and colour-independent feedback. The manual TalkBack order, focus restoration, keyboard/D-pad/Switch Access, contrast, tablet, and orientation matrix remains M5 work. Statistics and Settings remain UI foundations; their live binding, persistence, and reset path are not M2 claims.
+
+### Automated M2 gate
+
+Verification was completed on 2026-07-22:
+
+| Command/evidence | Result |
+| --- | --- |
+| `.\gradlew.bat --no-daemon spotlessCheck testDebugUnitTest lintDebug assembleRelease` | Passed. Spotless reported no formatting violations, all 41 JVM tests passed, Android Lint had no errors, and the release APK assembled. Remaining lint notices are dependency/SDK update suggestions rather than M2 defects. |
+| `.\gradlew.bat connectedDebugAndroidTest` | Passed on the Pixel 10 Pro XL Android 17 emulator: 10 tests, 0 failures, 0 errors, 0 skipped. |
+
+The 41 JVM tests cover starter-deck invariants, scoring, compatible distractors, deterministic generation, delayed retry, review scheduling, summary calculations, session creation, Home double-tap protection, Practice reconstruction/actions and recoverable storage failure, Summary derivation, and typed routes. The 10 device tests cover application identity, two Room transaction/reconstruction cases, Home/Practice/Summary accessibility, top-level navigation, confirmed abandonment, and a complete saved local session.
+
+**M2 conclusion.** The offline local learning gate is complete. These results do not claim a live dictionary request, API cache/failure behaviour, DataStore settings, a Room-bound Statistics screen, local reset, migration coverage, or the final manual accessibility matrix; those remain M3-M5 work.

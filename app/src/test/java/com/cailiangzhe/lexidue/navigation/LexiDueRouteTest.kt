@@ -14,4 +14,14 @@ class LexiDueRouteTest {
 
         assertEquals(route, decoded)
     }
+
+    @Test
+    fun practiceSummaryRoute_roundTripsSessionIdentifier() {
+        val route = PracticeSummaryRoute(sessionId = "session-42")
+
+        val encoded = Json.encodeToString(PracticeSummaryRoute.serializer(), route)
+        val decoded = Json.decodeFromString(PracticeSummaryRoute.serializer(), encoded)
+
+        assertEquals(route, decoded)
+    }
 }

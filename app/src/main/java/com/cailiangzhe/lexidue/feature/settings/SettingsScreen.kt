@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.cailiangzhe.lexidue.R
 import com.cailiangzhe.lexidue.core.designsystem.component.LexiDueScreen
 import com.cailiangzhe.lexidue.core.designsystem.component.SectionHeading
+import com.cailiangzhe.lexidue.domain.model.PracticeDifficulty
 
 @Composable
 fun SettingsScreen(

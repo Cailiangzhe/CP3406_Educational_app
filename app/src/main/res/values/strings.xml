@@ -14,15 +14,16 @@
         <item quantity="other">A %1$d-word session with %2$d words due now.</item>
     </plurals>
     <string name="action_start_practice">Start practice</string>
+    <string name="action_starting_practice">Preparing practice&#8230;</string>
+    <string name="home_loading_local_data">Loading saved learning data&#8230;</string>
+    <string name="home_local_error">Could not prepare local practice: %1$s</string>
     <string name="home_overview_heading">Learning overview</string>
     <string name="home_due_label">Due now</string>
     <string name="home_due_supporting">Due dates are recommendations, not penalties.</string>
-    <string name="home_review_label">To review</string>
     <string name="home_mastered_label">Mastered</string>
     <string name="home_enrichment_heading">Dictionary enrichment</string>
-    <string name="home_enrichment_description">Optionally refresh saved dictionary details for up to five due words. Practice remains available from local content.</string>
+    <string name="home_enrichment_description">Online dictionary enrichment is planned for a later milestone. Current practice uses the saved local starter deck.</string>
     <string name="action_enrich_deck">Enrich deck</string>
-    <string name="action_enriching_deck">Enriching deck&#8230;</string>
     <string name="home_last_refresh">Last successful refresh: %1$s</string>
     <string name="home_navigation_heading">Explore LexiDue</string>
     <string name="action_open_statistics">View statistics</string>
@@ -30,16 +31,42 @@
 
     <!-- Practice -->
     <string name="practice_title">Practice</string>
-    <string name="practice_subtitle">Choose the meaning that best matches the academic word.</string>
+    <string name="practice_subtitle">Work through a calm, untimed session saved on this device.</string>
+    <string name="practice_loading">Preparing saved local questions&#8230;</string>
+    <string name="practice_error_title">Practice is unavailable</string>
+    <string name="action_try_again">Try again</string>
     <string name="practice_progress_description">Question %1$d of %2$d</string>
-    <string name="practice_question_instruction">Which definition best matches this word?</string>
+    <string name="practice_word_to_definition_instruction">Which definition best matches this word?</string>
+    <string name="practice_definition_to_word_instruction">Which academic word best matches this definition?</string>
+    <string name="practice_delayed_retry">Delayed review</string>
     <string name="practice_answers_heading">Answer choices</string>
     <string name="practice_answer_description">Answer %1$d of %2$d: %3$s</string>
     <string name="practice_correct_label">Correct</string>
     <string name="practice_incorrect_label">Not quite</string>
+    <string name="action_continue_practice">Continue</string>
     <string name="action_skip_question">Skip this question</string>
     <string name="action_exit_practice">Exit practice</string>
     <string name="practice_skip_exit_note">Skipping or exiting never counts as an incorrect answer.</string>
+    <string name="practice_exit_dialog_title">Leave this session?</string>
+    <string name="practice_exit_dialog_message">Answers already recorded will stay saved. Leaving is not scored as an incorrect answer.</string>
+    <string name="practice_exit_dialog_confirm">Leave session</string>
+    <string name="action_keep_practising">Keep practising</string>
+    <string name="practice_summary_title">Session summary</string>
+    <string name="practice_summary_subtitle">Review what happened and choose your next step.</string>
+    <string name="practice_summary_loading">Loading the saved session summary&#8230;</string>
+    <string name="practice_summary_unavailable">Summary unavailable</string>
+    <string name="practice_summary_results_heading">Your results</string>
+    <string name="practice_summary_accuracy">Accuracy</string>
+    <string name="practice_summary_accuracy_value">%1$d%%</string>
+    <string name="practice_summary_skips_excluded">Skipped questions are not included in accuracy.</string>
+    <string name="practice_summary_correct">Correct</string>
+    <string name="practice_summary_not_yet">Not yet</string>
+    <string name="practice_summary_skipped">Skipped</string>
+    <string name="practice_summary_retry_value">Delayed retries completed: %1$d</string>
+    <string name="practice_summary_review_heading">Words to revisit</string>
+    <string name="practice_summary_no_review_words">No words need an extra review from this session.</string>
+    <string name="practice_summary_completed_at">Completed %1$s</string>
+    <string name="action_return_home">Return home</string>
 
     <!-- Statistics -->
     <string name="statistics_title">Statistics</string>
