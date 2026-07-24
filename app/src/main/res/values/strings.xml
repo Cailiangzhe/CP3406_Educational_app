@@ -4,6 +4,7 @@
     <!-- Shared accessibility states -->
     <string name="state_selected">Selected</string>
     <string name="state_not_selected">Not selected</string>
+    <string name="action_dismiss">Dismiss</string>
 
     <!-- Home -->
     <string name="home_title">Home</string>
@@ -15,16 +16,38 @@
     </plurals>
     <string name="action_start_practice">Start practice</string>
     <string name="action_starting_practice">Preparing practice&#8230;</string>
+    <string name="home_practice_preferences">%1$d words &#183; %2$s difficulty</string>
+    <string name="difficulty_foundation">Foundation</string>
+    <string name="difficulty_standard">Standard</string>
+    <string name="difficulty_challenge">Challenge</string>
     <string name="home_loading_local_data">Loading saved learning data&#8230;</string>
+    <string name="home_loading_settings">Loading saved practice settings&#8230;</string>
     <string name="home_local_error">Could not prepare local practice: %1$s</string>
     <string name="home_overview_heading">Learning overview</string>
     <string name="home_due_label">Due now</string>
     <string name="home_due_supporting">Due dates are recommendations, not penalties.</string>
     <string name="home_mastered_label">Mastered</string>
     <string name="home_enrichment_heading">Dictionary enrichment</string>
-    <string name="home_enrichment_description">Online dictionary enrichment is planned for a later milestone. Current practice uses the saved local starter deck.</string>
-    <string name="action_enrich_deck">Enrich deck</string>
+    <string name="home_enrichment_description">When you choose refresh, up to five due word spellings go to Free Dictionary API for lookup. Answers, progress, and settings stay on this device. Checked results are saved separately and never change quiz answers. The provider also receives normal connection metadata.</string>
+    <string name="action_enrich_deck">Refresh up to 5 due words</string>
+    <string name="action_enriching_deck">Checking and saving&#8230;</string>
+    <string name="home_enrichment_progress">Network &#8594; safety checks &#8594; saved on this device</string>
+    <string name="home_enrichment_refreshing">Refreshing due words: network lookup, safety checks, then local save.</string>
+    <string name="home_enrichment_no_due">There are no due words to refresh.</string>
+    <string name="home_enrichment_saved">Refreshed words: %1$d. Already fresh: %2$d.</string>
+    <string name="home_enrichment_all_fresh">No network request was needed. Fresh saved words: %1$d.</string>
+    <string name="home_enrichment_partial">Saved content remains available. Refreshed: %1$d. Already fresh: %2$d. Unavailable: %3$d.</string>
+    <string name="home_enrichment_failed">Refresh could not update any selected words. Unavailable: %1$d. Saved content is still shown and practice remains available.</string>
+    <string name="home_enrichment_cache_unavailable">Saved dictionary content is temporarily unavailable. Practice still uses the local reviewed deck.</string>
+    <string name="home_loading_enrichment_cache">Loading saved dictionary content&#8230;</string>
+    <string name="action_retry_saved_content">Retry saved content</string>
     <string name="home_last_refresh">Last successful refresh: %1$s</string>
+    <string name="home_saved_enrichment_heading">Saved dictionary content</string>
+    <string name="home_no_saved_enrichment">No saved dictionary content yet. Practice already works from the reviewed local deck.</string>
+    <string name="home_enrichment_stale">Saved more than 30 days ago</string>
+    <string name="home_enrichment_fresh">Saved for offline use</string>
+    <string name="home_enrichment_example">Example: %1$s</string>
+    <string name="home_enrichment_source">Provider: %1$s &#183; Source: %2$s</string>
     <string name="home_navigation_heading">Explore LexiDue</string>
     <string name="action_open_statistics">View statistics</string>
     <string name="action_open_settings">Open settings</string>
@@ -115,15 +138,13 @@
     <string name="settings_theme_dark">Dark theme</string>
     <string name="settings_effects_heading">Comfort and feedback</string>
     <string name="settings_sound_title">Sound</string>
-    <string name="settings_sound_description">Play optional audio feedback when available.</string>
+    <string name="settings_sound_description">Save a preference for optional sound. Current practice uses visible feedback only.</string>
     <string name="settings_haptics_title">Haptics</string>
-    <string name="settings_haptics_description">Use brief vibration alongside visible feedback.</string>
+    <string name="settings_haptics_description">Save a preference for brief vibration. Current practice does not require vibration.</string>
     <string name="settings_reduced_motion_title">Reduced motion</string>
-    <string name="settings_reduced_motion_description">Avoid non-essential movement and animated transitions.</string>
+    <string name="settings_reduced_motion_description">Save a preference to avoid non-essential movement. Current practice has no required animation.</string>
     <string name="settings_privacy_heading">Privacy and data</string>
     <string name="settings_privacy_local_title">Local by design</string>
     <string name="settings_privacy_local_description">Learning history stays on this device and is never uploaded.</string>
-    <string name="settings_api_description">Optional dictionary enrichment requests only the selected word and stores validated content locally.</string>
-    <string name="action_reset_learning_data">Reset learning data</string>
-    <string name="settings_reset_note">A confirmation step will explain exactly what is deleted before reset.</string>
+    <string name="settings_api_description">Only when you choose refresh, up to five due word spellings go to Free Dictionary API and validated content is saved locally. The provider also receives normal connection metadata.</string>
 </resources>

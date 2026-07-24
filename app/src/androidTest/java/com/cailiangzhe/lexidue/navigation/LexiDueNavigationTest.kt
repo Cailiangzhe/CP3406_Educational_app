@@ -1,5 +1,6 @@
 package com.cailiangzhe.lexidue.navigation
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,12 +12,15 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cailiangzhe.lexidue.MainActivity
 import com.cailiangzhe.lexidue.R
 import com.cailiangzhe.lexidue.feature.practice.PracticeSummaryTestTags
 import com.cailiangzhe.lexidue.feature.practice.PracticeTestTags
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +43,30 @@ class LexiDueNavigationTest {
 
         composeRule.onNodeWithTag(LexiDueTestTags.HOME_NAVIGATION).performClick()
         composeRule.onNodeWithTag(LexiDueTestTags.HOME_SCREEN).assertIsDisplayed()
+    }
+
+    @Test
+    fun homeHeading_staysBelowTheTopSystemInset() {
+        val homeHeading =
+            hasText(composeRule.activity.getString(R.string.home_title))
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        composeRule.waitUntilAtLeastOneExists(homeHeading, timeoutMillis = STATE_TIMEOUT_MILLIS)
+        val headingNode = composeRule.onNode(homeHeading).assertIsDisplayed()
+        var statusBarInset = 0
+        composeRule.runOnIdle {
+            statusBarInset =
+                ViewCompat
+                    .getRootWindowInsets(composeRule.activity.window.decorView)
+                    ?.getInsets(WindowInsetsCompat.Type.statusBars())
+                    ?.top
+                    ?: 0
+        }
+
+        assertTrue(
+            "Home heading top ${headingNode.fetchSemanticsNode().boundsInRoot.top}px " +
+                "must be at or below the ${statusBarInset}px status-bar inset.",
+            headingNode.fetchSemanticsNode().boundsInRoot.top >= statusBarInset,
+        )
     }
 
     @Test

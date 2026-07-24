@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import com.cailiangzhe.lexidue.feature.home.HomeRouteScreen
 import com.cailiangzhe.lexidue.feature.practice.PracticeRouteScreen
 import com.cailiangzhe.lexidue.feature.practice.PracticeSummaryRouteScreen
-import com.cailiangzhe.lexidue.feature.settings.SettingsScreen
+import com.cailiangzhe.lexidue.feature.settings.SettingsRouteScreen
 import com.cailiangzhe.lexidue.feature.statistics.StatisticsScreen
 
 object LexiDueTestTags {
@@ -77,7 +77,7 @@ fun LexiDueNavHost(
             )
         }
         composable<SettingsRoute> {
-            SettingsScreen(
+            SettingsRouteScreen(
                 modifier = Modifier.testTag(LexiDueTestTags.SETTINGS_SCREEN),
             )
         }

@@ -1,12 +1,7 @@
 package com.cailiangzhe.lexidue.feature.settings
 
 import com.cailiangzhe.lexidue.domain.model.PracticeDifficulty
-
-enum class ThemeMode {
-    SYSTEM,
-    LIGHT,
-    DARK,
-}
+import com.cailiangzhe.lexidue.domain.model.ThemeMode
 
 data class SettingsUiState(
     val sessionLength: Int = 10,
@@ -15,7 +10,14 @@ data class SettingsUiState(
     val soundEnabled: Boolean = false,
     val hapticsEnabled: Boolean = true,
     val reducedMotion: Boolean = false,
-)
+    val isLoading: Boolean = true,
+    val hasLoadedSettings: Boolean = false,
+    val isUpdating: Boolean = false,
+    val errorMessage: String? = null,
+) {
+    val controlsEnabled: Boolean
+        get() = hasLoadedSettings && !isUpdating
+}
 
 sealed interface SettingsUiAction {
     data class SetSessionLength(
@@ -42,5 +44,7 @@ sealed interface SettingsUiAction {
         val enabled: Boolean,
     ) : SettingsUiAction
 
-    data object RequestResetData : SettingsUiAction
+    data object Retry : SettingsUiAction
+
+    data object DismissError : SettingsUiAction
 }

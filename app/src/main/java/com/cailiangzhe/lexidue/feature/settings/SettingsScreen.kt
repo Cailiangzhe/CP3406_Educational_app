@@ -6,57 +6,104 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.cailiangzhe.lexidue.R
 import com.cailiangzhe.lexidue.core.designsystem.component.LexiDueScreen
 import com.cailiangzhe.lexidue.core.designsystem.component.SectionHeading
 import com.cailiangzhe.lexidue.domain.model.PracticeDifficulty
+import com.cailiangzhe.lexidue.domain.model.ThemeMode
+import com.cailiangzhe.lexidue.domain.model.UserSettings
 
 @Composable
 fun SettingsScreen(
+    uiState: SettingsUiState,
+    onAction: (SettingsUiAction) -> Unit,
     modifier: Modifier = Modifier,
-    uiState: SettingsUiState = SettingsUiState(),
-    onAction: (SettingsUiAction) -> Unit = {},
 ) {
     LexiDueScreen(
         title = stringResource(R.string.settings_title),
         subtitle = stringResource(R.string.settings_subtitle),
         modifier = modifier,
     ) {
+        uiState.errorMessage?.let { errorMessage ->
+            val canRetryObservation = !uiState.hasLoadedSettings
+            SettingsErrorCard(
+                message = errorMessage,
+                actionLabel =
+                    stringResource(
+                        if (canRetryObservation) R.string.action_try_again else R.string.action_dismiss,
+                    ),
+                actionEnabled = !uiState.isUpdating,
+                onAction = {
+                    onAction(
+                        if (canRetryObservation) {
+                            SettingsUiAction.Retry
+                        } else {
+                            SettingsUiAction.DismissError
+                        },
+                    )
+                },
+            )
+        }
+
+        if (!uiState.hasLoadedSettings) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
+            return@LexiDueScreen
+        }
+
+        if (uiState.isUpdating) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
         SectionHeading(stringResource(R.string.settings_session_length_heading))
         Text(
             text = stringResource(R.string.settings_session_length_description),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        listOf(5, 10, 15).forEach { wordCount ->
-            ChoiceButton(
-                label =
-                    pluralStringResource(
-                        R.plurals.settings_word_count,
-                        wordCount,
-                        wordCount,
-                    ),
-                selected = uiState.sessionLength == wordCount,
-                onClick = { onAction(SettingsUiAction.SetSessionLength(wordCount)) },
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            UserSettings.SUPPORTED_SESSION_LENGTHS.sorted().forEach { wordCount ->
+                PersistedChoiceButton(
+                    label =
+                        pluralStringResource(
+                            R.plurals.settings_word_count,
+                            wordCount,
+                            wordCount,
+                        ),
+                    selected = uiState.sessionLength == wordCount,
+                    enabled = uiState.controlsEnabled,
+                    onClick = { onAction(SettingsUiAction.SetSessionLength(wordCount)) },
+                )
+            }
         }
 
         SectionHeading(stringResource(R.string.settings_difficulty_heading))
@@ -65,40 +112,55 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        PracticeDifficulty.entries.forEach { difficulty ->
-            ChoiceButton(
-                label = difficultyLabel(difficulty),
-                selected = uiState.difficulty == difficulty,
-                onClick = { onAction(SettingsUiAction.SetDifficulty(difficulty)) },
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PracticeDifficulty.entries.forEach { difficulty ->
+                PersistedChoiceButton(
+                    label = persistedDifficultyLabel(difficulty),
+                    selected = uiState.difficulty == difficulty,
+                    enabled = uiState.controlsEnabled,
+                    onClick = { onAction(SettingsUiAction.SetDifficulty(difficulty)) },
+                )
+            }
         }
 
         SectionHeading(stringResource(R.string.settings_theme_heading))
-        ThemeMode.entries.forEach { themeMode ->
-            ChoiceButton(
-                label = themeModeLabel(themeMode),
-                selected = uiState.themeMode == themeMode,
-                onClick = { onAction(SettingsUiAction.SetThemeMode(themeMode)) },
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ThemeMode.entries.forEach { themeMode ->
+                PersistedChoiceButton(
+                    label = persistedThemeModeLabel(themeMode),
+                    selected = uiState.themeMode == themeMode,
+                    enabled = uiState.controlsEnabled,
+                    onClick = { onAction(SettingsUiAction.SetThemeMode(themeMode)) },
+                )
+            }
         }
 
         SectionHeading(stringResource(R.string.settings_effects_heading))
-        SettingSwitchRow(
+        PersistedSettingSwitchRow(
             title = stringResource(R.string.settings_sound_title),
             description = stringResource(R.string.settings_sound_description),
             checked = uiState.soundEnabled,
+            enabled = uiState.controlsEnabled,
             onCheckedChange = { onAction(SettingsUiAction.SetSoundEnabled(it)) },
         )
-        SettingSwitchRow(
+        PersistedSettingSwitchRow(
             title = stringResource(R.string.settings_haptics_title),
             description = stringResource(R.string.settings_haptics_description),
             checked = uiState.hapticsEnabled,
+            enabled = uiState.controlsEnabled,
             onCheckedChange = { onAction(SettingsUiAction.SetHapticsEnabled(it)) },
         )
-        SettingSwitchRow(
+        PersistedSettingSwitchRow(
             title = stringResource(R.string.settings_reduced_motion_title),
             description = stringResource(R.string.settings_reduced_motion_description),
             checked = uiState.reducedMotion,
+            enabled = uiState.controlsEnabled,
             onCheckedChange = { onAction(SettingsUiAction.SetReducedMotion(it)) },
         )
 
@@ -128,44 +190,63 @@ fun SettingsScreen(
                 )
             }
         }
-
-        OutlinedButton(
-            onClick = { onAction(SettingsUiAction.RequestResetData) },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { role = Role.Button },
-        ) {
-            Text(stringResource(R.string.action_reset_learning_data))
-        }
-        Text(
-            text = stringResource(R.string.settings_reset_note),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
 @Composable
-private fun ChoiceButton(
+private fun SettingsErrorCard(
+    message: String,
+    actionLabel: String,
+    actionEnabled: Boolean,
+    onAction: () -> Unit,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            OutlinedButton(
+                onClick = onAction,
+                enabled = actionEnabled,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(actionLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersistedChoiceButton(
     label: String,
     selected: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val selectedDescription =
-        stringResource(
-            if (selected) R.string.state_selected else R.string.state_not_selected,
-        )
     OutlinedButton(
         onClick = onClick,
+        enabled = enabled,
         modifier =
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .semantics {
-                    role = Role.Button
-                    stateDescription = selectedDescription
+                    role = Role.RadioButton
+                    this.selected = selected
                 },
     ) {
         Text(
@@ -180,15 +261,27 @@ private fun ChoiceButton(
 }
 
 @Composable
-private fun SettingSwitchRow(
+private fun PersistedSettingSwitchRow(
     title: String,
     description: String,
     checked: Boolean,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .toggleable(
+                        value = checked,
+                        enabled = enabled,
+                        role = Role.Switch,
+                        onValueChange = onCheckedChange,
+                    ).semantics(mergeDescendants = true) {
+                        contentDescription = title
+                    }.padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -208,21 +301,15 @@ private fun SettingSwitchRow(
             }
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange,
-                modifier =
-                    Modifier
-                        .minimumInteractiveComponentSize()
-                        .semantics {
-                            contentDescription = title
-                            role = Role.Switch
-                        },
+                onCheckedChange = null,
+                enabled = enabled,
             )
         }
     }
 }
 
 @Composable
-private fun difficultyLabel(difficulty: PracticeDifficulty): String =
+private fun persistedDifficultyLabel(difficulty: PracticeDifficulty): String =
     when (difficulty) {
         PracticeDifficulty.FOUNDATION -> stringResource(R.string.settings_difficulty_foundation)
         PracticeDifficulty.STANDARD -> stringResource(R.string.settings_difficulty_standard)
@@ -230,7 +317,7 @@ private fun difficultyLabel(difficulty: PracticeDifficulty): String =
     }
 
 @Composable
-private fun themeModeLabel(themeMode: ThemeMode): String =
+private fun persistedThemeModeLabel(themeMode: ThemeMode): String =
     when (themeMode) {
         ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
         ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)

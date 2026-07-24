@@ -115,3 +115,51 @@ Verification was completed on 2026-07-22:
 The 41 JVM tests cover starter-deck invariants, scoring, compatible distractors, deterministic generation, delayed retry, review scheduling, summary calculations, session creation, Home double-tap protection, Practice reconstruction/actions and recoverable storage failure, Summary derivation, and typed routes. The 10 device tests cover application identity, two Room transaction/reconstruction cases, Home/Practice/Summary accessibility, top-level navigation, confirmed abandonment, and a complete saved local session.
 
 **M2 conclusion.** The offline local learning gate is complete. These results do not claim a live dictionary request, API cache/failure behaviour, DataStore settings, a Room-bound Statistics screen, local reset, migration coverage, or the final manual accessibility matrix; those remain M3-M5 work.
+
+## 2026-07-23 - M3 API enrichment and offline-first persistence
+
+### External source and content-rights boundary
+
+**Decision.** Use the documented Free Dictionary API v2 English-entry endpoint only for optional, learner-triggered enrichment. One Home action may make at most five due-word network lookups; no background or whole-deck request exists. Show the provider and source in the saved UI, and disclose that the selected spelling plus ordinary connection metadata reaches the external service.
+
+**Rights finding.** The provider describes the service as free and intended for learning applications, while its server repository is GPL-3.0. The reviewed pages do not separately grant response-data, caching, redistribution, or third-party audio rights. The complete finding and links are recorded in [`api-source-decision.md`](api-source-decision.md).
+
+**Boundary.** The assessed build uses a narrow on-device cache, does not bundle or export API responses, uses only original synthetic test fixtures, and does not download or play audio. A public or commercial release requires explicit response/audio rights or a replacement provider. The server implementation's GPL licence is not treated as automatic permission to redistribute its output.
+
+### Strict remote boundary and quarantined domain model
+
+**Decision.** Put Retrofit behind a replaceable `DictionaryRemoteDataSource` and return exhaustive lookup results for success, invalid request, 404, other HTTP status, malformed payload, timeout, transport failure, and unusable content. Bound the full OkHttp call to 15 seconds and reject response bodies larger than 512 KiB before deserialisation. A success must match the exact normalized requested word and pass supported-part-of-speech, bounded-text, control/markup, optional-field, HTTPS URL, host-safety, stable-ID, deduplication, and maximum-sense checks.
+
+**Reason.** A tolerant DTO is necessary because optional provider fields vary, but tolerance must not turn untrusted or mismatched content into saved learning material. Explicit outcomes let the repository preserve prior state without parsing exception messages. `ApiSense` is a separate display-only model and has no conversion into `CanonicalMeaning`, question answers, or distractors.
+
+**Evidence.** Mapper and synthetic MockWebServer tests cover the exact GET path, tolerant success, omitted fields, 404, other HTTP status, malformed JSON, read/call timeout, `IOException`, oversized responses, mismatched words, unsupported parts of speech, unsafe/overlong text, protocol-relative-to-HTTPS audio normalization, unsafe optional URLs, stable deduplication, and bounded sense count. Home maps these detailed data-layer outcomes to a generic recoverable refresh failure instead of displaying transport internals. No automated test calls the live service.
+
+### Room v2 migration and offline cache policy
+
+**Decision.** Add `ApiSenseEntity` in schema v2 with a word foreign key, cascade delete, word/fetched-time indices, provider/source, optional metadata, and fetched timestamp. `ApiSenseDao.replaceForWord` requires a non-empty, same-word validated snapshot and replaces it transactionally. `MIGRATION_1_2` creates only the new table and indices; production registers the migration and has no destructive fallback.
+
+**Cache policy.** `RoomDictionaryEnrichmentRepository` serializes refreshes, scans a bounded rotating window of local due candidates, makes at most five network lookups per action, skips entries that are no more than 30 days old without consuming that network budget, and writes only validated successes. Future timestamps are treated as stale so a device clock correction cannot make a cache entry permanently fresh. Rotation prevents fresh or repeatedly failing early candidates from permanently starving later due words. Any lookup failure leaves the previous cache untouched. Recent cached word relations are observed directly from Room, so Home can render saved content immediately after repository/database recreation without networking.
+
+**Evidence.** Device tests verify cache/canonical isolation, atomic replacement, rejection without deletion, recent ordering, cascade behaviour, five-network-lookup bounding, the 30-day boundary, partial and total failure retention, starvation avoidance, and offline observation after a database reopen. The migration test inserts representative rows in every M2 table, migrates v1 to v2, validates the exported schema, and confirms all six original tables retain their data.
+
+### Preferences DataStore and applied settings
+
+**Decision.** Store only session length, difficulty, theme, sound, haptics, reduced motion, and onboarding state in Preferences DataStore. Unknown enum text or unsupported session lengths map to safe defaults. Corrupt files are replaced with defaults, and transient I/O read failures emit defaults before a delayed re-subscription so active Home/theme observers can recover. Relational learning history remains exclusively in Room.
+
+**UI behaviour.** Settings uses a Hilt ViewModel with immutable loading/content/updating/error state, disables controls during writes, exposes retry after observation failure, and provides radio/switch semantics with minimum targets. The app shell applies safe-drawing insets to route content so headings remain below the status bar and cutout while edge-to-edge rendering stays enabled. Reset remains absent until M4 can provide a confirmed, tested deletion path. Home waits for settings before enabling session creation; persisted length and difficulty feed `StartPracticeSession`, while the root applies System/Light/Dark theme changes.
+
+**Boundary.** Sound, haptics, reduced motion, and onboarding state persist, but M3 does not claim effects the current learning UI does not use. The core activity has no audio dependency, forced motion, or haptic requirement.
+
+### Automated M3 gate
+
+Verification was completed on 2026-07-23:
+
+| Command/evidence | Result |
+| --- | --- |
+| `.\gradlew.bat --no-daemon testDebugUnitTest` | Passed: 79 tests, 0 failures, 0 errors, 0 skipped. |
+| `.\gradlew.bat --no-daemon spotlessCheck` | Passed with no formatting violations. |
+| `.\gradlew.bat --no-daemon --no-parallel assembleRelease` | Passed and produced `app-release-unsigned.apk`. |
+| `.\gradlew.bat --no-daemon --no-parallel lintDebug` | Passed. An earlier invocation that ran debug lint concurrently with release Hilt generation hit an Android Lint missing-temporary-file worker error; sequential rerun passed without source changes for lint findings. |
+| `.\gradlew.bat --no-daemon --no-parallel connectedDebugAndroidTest` | Passed on the Pixel 10 Pro XL Android 17 emulator: 21 tests, 0 failures, 0 errors, 0 skipped. |
+
+**M3 conclusion.** The API enrichment/offline-persistence gate is complete: Home exposes the learner-triggered path and renders saved result/source/time/fallback state; strict response validation precedes the Room write; cache survives repository recreation while offline; failures preserve both cache and canonical practice; and persisted settings affect session creation and theme. Statistics screen binding, confirmed reset, final manual accessibility/responsive evidence, screenshots, and public-release content-rights confirmation remain M4-M6 work.

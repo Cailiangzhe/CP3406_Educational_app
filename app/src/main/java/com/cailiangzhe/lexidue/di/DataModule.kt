@@ -3,15 +3,19 @@ package com.cailiangzhe.lexidue.di
 import android.content.Context
 import androidx.room.Room
 import com.cailiangzhe.lexidue.data.local.LexiDueDatabase
+import com.cailiangzhe.lexidue.data.local.MIGRATION_1_2
+import com.cailiangzhe.lexidue.data.local.dao.ApiSenseDao
 import com.cailiangzhe.lexidue.data.local.dao.LearningTransactionDao
 import com.cailiangzhe.lexidue.data.local.dao.ReviewProgressDao
 import com.cailiangzhe.lexidue.data.local.dao.SessionDao
 import com.cailiangzhe.lexidue.data.local.dao.StatisticsDao
 import com.cailiangzhe.lexidue.data.local.dao.WordDao
+import com.cailiangzhe.lexidue.data.repository.RoomDictionaryEnrichmentRepository
 import com.cailiangzhe.lexidue.data.repository.RoomPracticeSessionRepository
 import com.cailiangzhe.lexidue.data.repository.RoomReviewProgressRepository
 import com.cailiangzhe.lexidue.data.repository.RoomStatisticsRepository
 import com.cailiangzhe.lexidue.data.repository.RoomWordRepository
+import com.cailiangzhe.lexidue.domain.repository.DictionaryEnrichmentRepository
 import com.cailiangzhe.lexidue.domain.repository.PracticeSessionRepository
 import com.cailiangzhe.lexidue.domain.repository.ReviewProgressRepository
 import com.cailiangzhe.lexidue.domain.repository.StatisticsRepository
@@ -27,6 +31,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
+    @Binds
+    @Singleton
+    abstract fun bindDictionaryEnrichmentRepository(repository: RoomDictionaryEnrichmentRepository): DictionaryEnrichmentRepository
+
     @Binds
     @Singleton
     abstract fun bindWordRepository(repository: RoomWordRepository): WordRepository
@@ -48,7 +56,14 @@ abstract class DataModule {
         @Singleton
         fun provideDatabase(
             @ApplicationContext context: Context,
-        ): LexiDueDatabase = Room.databaseBuilder(context, LexiDueDatabase::class.java, LexiDueDatabase.DATABASE_NAME).build()
+        ): LexiDueDatabase =
+            Room
+                .databaseBuilder(context, LexiDueDatabase::class.java, LexiDueDatabase.DATABASE_NAME)
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        @Provides
+        fun provideApiSenseDao(database: LexiDueDatabase): ApiSenseDao = database.apiSenseDao()
 
         @Provides
         fun provideWordDao(database: LexiDueDatabase): WordDao = database.wordDao()

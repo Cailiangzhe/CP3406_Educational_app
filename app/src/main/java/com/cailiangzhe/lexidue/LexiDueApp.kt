@@ -1,6 +1,7 @@
 package com.cailiangzhe.lexidue
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -58,7 +59,10 @@ fun LexiDueApp(modifier: Modifier = Modifier) {
     ) {
         LexiDueNavHost(
             navController = navController,
-            modifier = Modifier.fillMaxSize(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .safeDrawingPadding(),
         )
     }
 }
